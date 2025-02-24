@@ -54,7 +54,7 @@ static char get_symbol(const Elf64_Sym symbol, const Elf64_Shdr *shdr)
 }
 
 static void print_symbol_info(const Elf64_Sym symbol, const Elf64_Shdr *shdr,
-    const char* sym_strtab)
+    const char *sym_strtab)
 {
     if (*(sym_strtab + symbol.st_name) == '\0' || symbol.st_info == STT_FILE)
         return;
@@ -79,18 +79,18 @@ static void *print_error_null(const char *str)
     return NULL;
 }
 
-static Elf64_Ehdr *load_elf(const char* filepath, char **buff, struct stat *s,
+static Elf64_Ehdr *load_elf(const char *filepath, char **buff, struct stat *s,
     int *fd)
 {
     *fd = open(filepath, O_RDONLY);
-
     if (*fd == -1)
         return print_error_null("Couldn't open file.\n");
     fstat(*fd, s);
     *buff = mmap(NULL, s->st_size, PROT_READ, MAP_PRIVATE, *fd, 0);
     if (*buff == MAP_FAILED)
         return print_error_null("Couldn't load file content.\n");
-    if ((*buff)[0] != ELFMAG0 || (*buff)[1] != ELFMAG1 || (*buff)[2] != ELFMAG2 || (*buff)[3] != ELFMAG3)
+    if ((*buff)[0] != ELFMAG0 || (*buff)[1] != ELFMAG1 ||
+        (*buff)[2] != ELFMAG2 || (*buff)[3] != ELFMAG3)
         return print_error_null("nm: file format not recognized.\n");
     return (void *) *buff;
 }
@@ -99,22 +99,25 @@ void iterate_symbols(const Elf64_Ehdr *elf, const char *buff)
 {
     const Elf64_Shdr *shdr = (Elf64_Shdr *) (buff + elf->e_shoff);
     const Elf64_Shdr *sym_table = NULL;
+    const Elf64_Shdr *symtab = NULL;
+    const char *sym_strtab = NULL;
+    const Elf64_Sym *sym = NULL;
+
     for (int i = 0; i < elf->e_shnum; i++)
         if (shdr[i].sh_type == SHT_SYMTAB)
             sym_table = &shdr[i];
-
     if (sym_table == NULL) {
         print_error("Couldn't find symbol table in given file.\n");
         return;
     }
-    const Elf64_Shdr *symtab = &shdr[sym_table->sh_link];
-    const char *sym_strtab = buff + symtab->sh_offset;
-    const Elf64_Sym *sym = (Elf64_Sym *) (buff + sym_table->sh_offset);
+    symtab = &shdr[sym_table->sh_link];
+    sym_strtab = buff + symtab->sh_offset;
+    sym = (Elf64_Sym *) (buff + sym_table->sh_offset);
     for (long unsigned i = 0; i < sym_table->sh_size / sizeof(Elf64_Sym); i++)
         print_symbol_info(sym[i], shdr, sym_strtab);
 }
 
-int main(const int argc, const char** argv)
+int main(const int argc, const char **argv)
 {
     int fd = -1;
     char *buff = NULL;
