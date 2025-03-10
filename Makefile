@@ -32,7 +32,7 @@ NM_NAME		=	my_nm
 .DEFAULT_GOAL := all
 
 .PHONY: all
-all: $(TOTO_NAME) $(NM_NAME)
+all: $(TOTO_NAME) nm
 
 $(BDIR)/toto/%.o: %.c
 	@ mkdir -p $(dir $@)
