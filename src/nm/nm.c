@@ -70,7 +70,7 @@ static void print_symbol_info(const Elf64_Sym symbol, const Elf64_Shdr *shdr,
 
 static void print_err(const char *file, const char *msg)
 {
-    fprintf(stderr, "my_nm: %s: %s\n", file, msg);
+    fprintf(stderr, "my_nm: '%s': %s\n", file, msg);
 }
 
 static Elf64_Ehdr *load_elf(const char *filepath, char **buff, struct stat *s,
@@ -78,7 +78,7 @@ static Elf64_Ehdr *load_elf(const char *filepath, char **buff, struct stat *s,
 {
     *fd = open(filepath, O_RDONLY);
     if (*fd == -1) {
-        print_err(filepath, "cannot open file");
+        print_err(filepath, "No such file");
         return NULL;
     }
     fstat(*fd, s);
