@@ -46,8 +46,8 @@ $(BDIR)/nm/%.o: %.c
 	@ mkdir -p $(dir $@)
 	$(CC) -o $@ -c $< $(CFLAGS)
 
-$(NM_NAME): $(NM_OBJ)
-	$(CC) $^ $(CFLGAS) -o $@
+nm: $(NM_OBJ)
+	$(CC) $^ $(CFLGAS) -o $(NM_NAME)
 
 .PHONY: clean
 clean:
