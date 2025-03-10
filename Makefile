@@ -47,7 +47,7 @@ $(BDIR)/nm/%.o: %.c
 	$(CC) -o $@ -c $< $(CFLAGS)
 
 nm: $(NM_OBJ)
-	$(CC) $^ $(CFLGAS) -o $(NM_NAME)
+	$(CC) $^ $(CFLAGS) -o $(NM_NAME)
 
 .PHONY: clean
 clean:
