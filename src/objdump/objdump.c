@@ -5,8 +5,10 @@
 ** objdump.c
 */
 
+#include <ctype.h>
 #include <elf.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <tek.h>
@@ -41,36 +43,84 @@ static Elf64_Ehdr *load_elf(const char *filepath, char **buff, struct stat *s,
     return (void *) *buff;
 }
 
-static void print_section_content(const Elf64_Shdr *shdr,
-    const char *shstrtab, const char *buff)
+static bool should_print_section(const Elf64_Shdr *shdr,
+    const char *shstrtab)
 {
     if (shdr->sh_type == SHT_NOBITS
-        || strlen(&shstrtab[shdr->sh_name]) == 0
-        || strcmp(&shstrtab[shdr->sh_name], ".shstrtab") == 0
-        || strcmp(&shstrtab[shdr->sh_name], ".strtab") == 0
-        || strcmp(&shstrtab[shdr->sh_name], ".symtab") == 0)
-        return;
-    printf("Contents of section %s:", &shstrtab[shdr->sh_name]);
-    for (int idx = 0; idx < shdr->sh_size; idx++) {
-        if (idx % 16 == 0)
-            printf("\n");
-        if (idx % 4 == 0)
-            printf(" ");
-        if (idx % 16 == 0)
-            printf("%04lx ", shdr->sh_addr + idx);
-        printf("%02.2x", (unsigned char) *(buff + shdr->sh_offset + idx));
-    }
-    printf("\n");
+    || strlen(&shstrtab[shdr->sh_name]) == 0
+    || strcmp(&shstrtab[shdr->sh_name], ".shstrtab") == 0
+    || strcmp(&shstrtab[shdr->sh_name], ".strtab") == 0
+    || strcmp(&shstrtab[shdr->sh_name], ".symtab") == 0)
+        return false;
+    return true;
 }
 
-static void iterate_sections(const Elf64_Ehdr *elf, const char *buff,
-    const char *filepath)
+static void print_section_content_hex(const unsigned char *content,
+    const size_t size)
+{
+    size_t idx;
+
+    for (idx = 0; idx < size; idx++) {
+        if (idx % 4 == 0)
+            printf(" ");
+        printf("%02x", content[idx]);
+    }
+    for (idx = size; idx < 16; idx++) {
+        if (idx % 4 == 0)
+            printf(" ");
+        printf("  ");
+    }
+}
+
+static void print_section_content_ascii(const unsigned char *content,
+    const size_t size)
+{
+    printf("  ");
+    for (size_t idx = 0; idx < size; idx++)
+        printf("%c", isprint(content[idx]) ? content[idx] : '.');
+}
+
+static void print_section(const Elf64_Shdr *shdr,
+    const char *shstrtab, const char *buff)
+{
+    const unsigned char *content_addr =
+        (unsigned char *) buff + shdr->sh_offset;
+
+    if (!should_print_section(shdr, shstrtab))
+        return;
+    printf("Contents of section %s:\n", &shstrtab[shdr->sh_name]);
+    for (size_t i = 0; i < shdr->sh_size; i += 16) {
+        printf(" %04lx", shdr->sh_addr + i);
+        if (i + 16 > shdr->sh_size) {
+            print_section_content_hex(content_addr + i, shdr->sh_size - i);
+            print_section_content_ascii(content_addr + i, shdr->sh_size - i);
+        } else {
+            print_section_content_hex(content_addr + i, 16);
+            print_section_content_ascii(content_addr + i, 16);
+        }
+        printf("\n");
+    }
+}
+
+static void iterate_sections(const Elf64_Ehdr *elf, const char *buff)
 {
     const Elf64_Shdr *shdr = (Elf64_Shdr *) (buff + elf->e_shoff);
     const char *shstrtab = buff + shdr[elf->e_shstrndx].sh_offset;
 
     for (int i = 0; i < elf->e_shnum; i++)
-        print_section_content(&shdr[i], shstrtab, buff);
+        print_section(&shdr[i], shstrtab, buff);
+}
+
+static const char *get_file_format(const Elf64_Half machine_type)
+{
+    switch (machine_type) {
+        case EM_386:
+            return "i386";
+        case EM_X86_64:
+            return "x86-64";
+        default:
+            return "???";
+    }
 }
 
 static int iterate_on_files(const char *const *files, const int size)
@@ -81,11 +131,14 @@ static int iterate_on_files(const char *const *files, const int size)
     const Elf64_Ehdr *elf = NULL;
 
     for (int i = 0; i < size; i++) {
-        printf("\n%s:     file format ???\n\n", files[i]);
         elf = load_elf(files[i], &buff, &s, &fd);
         if (elf == NULL)
             return EXIT_FAILURE_TEK;
-        iterate_sections(elf, buff, files[i]);
+        printf("\n%s:     file format elf%d-%s\n\n",
+            files[i],
+            ((char *)elf)[EI_CLASS] == ELFCLASS32 ? 32 : 64,
+            get_file_format(elf->e_machine));
+        iterate_sections(elf, buff);
         munmap(buff, s.st_size);
         close(fd);
     }
