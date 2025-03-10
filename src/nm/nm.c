@@ -134,6 +134,10 @@ static int iterate_on_files(const char *const *files, const int size)
         elf = load_elf(files[i], &buff, &s, &fd);
         if (elf == NULL)
             return EXIT_FAILURE_TEK;
+        if (elf->e_shoff > s.st_size) {
+            print_err(files[i], "file format not recognized", false);
+            return EXIT_FAILURE_TEK;
+        }
         iterate_symbols(elf, buff, files[i]);
         munmap(buff, s.st_size);
         close(fd);
