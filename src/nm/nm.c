@@ -55,11 +55,11 @@ static char get_symbol(const Elf64_Sym symbol, const Elf64_Shdr *shdr)
 }
 
 static void print_symbol_info(const Elf64_Sym symbol, const Elf64_Shdr *shdr,
-    const char *sym_strtab)
+    const char *sym_strtab, const bool is_relocatable)
 {
     if (*(sym_strtab + symbol.st_name) == '\0' || symbol.st_info == STT_FILE)
         return;
-    if (symbol.st_value == 0) {
+    if (symbol.st_value == 0 && !is_relocatable) {
         printf("%16c %c %s\n", ' ', get_symbol(symbol, shdr),
             sym_strtab + symbol.st_name);
         return;
@@ -70,7 +70,7 @@ static void print_symbol_info(const Elf64_Sym symbol, const Elf64_Shdr *shdr,
 
 static void print_err(const char *file, const char *msg)
 {
-    fprintf(stderr, "nm: %s: %s\n", file, msg);
+    fprintf(stderr, "my_nm: %s: %s\n", file, msg);
 }
 
 static Elf64_Ehdr *load_elf(const char *filepath, char **buff, struct stat *s,
@@ -115,7 +115,7 @@ static void iterate_symbols(const Elf64_Ehdr *elf, const char *buff,
     sym_strtab = buff + symtab->sh_offset;
     sym = (Elf64_Sym *) (buff + sym_table->sh_offset);
     for (long unsigned i = 0; i < sym_table->sh_size / sizeof(Elf64_Sym); i++)
-        print_symbol_info(sym[i], shdr, sym_strtab);
+        print_symbol_info(sym[i], shdr, sym_strtab, elf->e_type == ET_REL);
 }
 
 static int iterate_on_files(const char *const *files, const int size)
