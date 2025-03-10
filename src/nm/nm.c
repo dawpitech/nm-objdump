@@ -68,9 +68,12 @@ static void print_symbol_info(const Elf64_Sym symbol, const Elf64_Shdr *shdr,
         sym_strtab + symbol.st_name);
 }
 
-static void print_err(const char *file, const char *msg)
+static void print_err(const char *file, const char *msg, const bool quoted)
 {
-    fprintf(stderr, "my_nm: '%s': %s\n", file, msg);
+    if (quoted)
+        fprintf(stderr, "my_nm: '%s': %s\n", file, msg);
+    else
+        fprintf(stderr, "my_nm: %s: %s\n", file, msg);
 }
 
 static Elf64_Ehdr *load_elf(const char *filepath, char **buff, struct stat *s,
@@ -78,18 +81,18 @@ static Elf64_Ehdr *load_elf(const char *filepath, char **buff, struct stat *s,
 {
     *fd = open(filepath, O_RDONLY);
     if (*fd == -1) {
-        print_err(filepath, "No such file");
+        print_err(filepath, "No such file", true);
         return NULL;
     }
     fstat(*fd, s);
     *buff = mmap(NULL, s->st_size, PROT_READ, MAP_PRIVATE, *fd, 0);
     if (*buff == MAP_FAILED) {
-        print_err(filepath, "map failed");
+        print_err(filepath, "map failed", false);
         return NULL;
     }
     if ((*buff)[0] != ELFMAG0 || (*buff)[1] != ELFMAG1 ||
         (*buff)[2] != ELFMAG2 || (*buff)[3] != ELFMAG3) {
-        print_err(filepath, "file format not recognized");
+        print_err(filepath, "file format not recognized", false);
         return NULL;
     }
     return (void *) *buff;
@@ -108,7 +111,7 @@ static void iterate_symbols(const Elf64_Ehdr *elf, const char *buff,
         if (shdr[i].sh_type == SHT_SYMTAB)
             sym_table = &shdr[i];
     if (sym_table == NULL) {
-        print_err(filepath, "Couldn't find symbol table in given file.\n");
+        print_err(filepath, "no symbols", false);
         return;
     }
     symtab = &shdr[sym_table->sh_link];
