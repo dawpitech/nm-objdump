@@ -18,9 +18,12 @@
 
 #include "objdump.h"
 
-static void print_err(const char *file, const char *msg)
+static void print_err(const char *file, const char *msg, const bool quoted)
 {
-    fprintf(stderr, "my_objdump: %s: %s\n", file, msg);
+    if (quoted)
+        fprintf(stderr, "my_objdump: '%s': %s\n", file, msg);
+    else
+        fprintf(stderr, "my_objdump: %s: %s\n", file, msg);
 }
 
 static const char *get_file_format(const Elf64_Half machine_type)
@@ -40,18 +43,18 @@ static Elf64_Ehdr *load_elf(const char *filepath, char **buff, struct stat *s,
 {
     *fd = open(filepath, O_RDONLY);
     if (*fd == -1) {
-        print_err(filepath, "cannot open file");
+        print_err(filepath, "No such file", true);
         return NULL;
     }
     fstat(*fd, s);
     *buff = mmap(NULL, s->st_size, PROT_READ, MAP_PRIVATE, *fd, 0);
     if (*buff == MAP_FAILED) {
-        print_err(filepath, "map failed");
+        print_err(filepath, "map failed", false);
         return NULL;
     }
     if ((*buff)[0] != ELFMAG0 || (*buff)[1] != ELFMAG1 ||
         (*buff)[2] != ELFMAG2 || (*buff)[3] != ELFMAG3) {
-        print_err(filepath, "file format not recognized");
+        print_err(filepath, "file format not recognized", false);
         return NULL;
         }
     return (void *) *buff;
@@ -85,6 +88,10 @@ static int dump_file(const char *const file, const objdump_t *config)
     elf = load_elf(file, &buff, &s, &fd);
     if (elf == NULL)
         return EXIT_FAILURE_TEK;
+    if (elf->e_shoff > s.st_size) {
+        print_err(file, "file format not recognized", false);
+        return EXIT_FAILURE_TEK;
+    }
     print_dump(elf, buff, file, config);
     munmap(buff, s.st_size);
     close(fd);
