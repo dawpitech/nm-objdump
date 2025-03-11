@@ -12,7 +12,7 @@
 #include "objdump.h"
 
 static bool should_print_section(const Elf64_Shdr *shdr,
-                                 const char *shstrtab)
+    const char *shstrtab)
 {
     if (shdr->sh_type == SHT_NOBITS
     || strlen(&shstrtab[shdr->sh_name]) == 0
