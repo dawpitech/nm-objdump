@@ -60,11 +60,13 @@ static Elf64_Ehdr *load_elf(const char *filepath, char **buff, struct stat *s,
 static void print_dump(const Elf64_Ehdr *elf, const char *dump,
     const char *filename, const objdump_t *config)
 {
+    if (((char *)elf)[EI_CLASS] == ELFCLASS32) {
+        fprintf(stderr, "file is in 32bits mode, skipping\n");
+        return;
+    }
     printf("\n%s:     file format elf%d-%s\n", filename,
         ((char *)elf)[EI_CLASS] == ELFCLASS32 ? 32 : 64,
     get_file_format(elf->e_machine));
-    if (((char *)elf)[EI_CLASS] == ELFCLASS32)
-        return;
     if (config->flags.headers)
         print_headers(elf, dump);
     else
