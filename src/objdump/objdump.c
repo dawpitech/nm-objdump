@@ -23,6 +23,18 @@ static void print_err(const char *file, const char *msg)
     fprintf(stderr, "my_objdump: %s: %s\n", file, msg);
 }
 
+static const char *get_file_format(const Elf64_Half machine_type)
+{
+    switch (machine_type) {
+        case EM_386:
+            return "i386";
+        case EM_X86_64:
+            return "x86-64";
+        default:
+            return "???";
+    }
+}
+
 static Elf64_Ehdr *load_elf(const char *filepath, char **buff, struct stat *s,
     int *fd)
 {
@@ -45,26 +57,18 @@ static Elf64_Ehdr *load_elf(const char *filepath, char **buff, struct stat *s,
     return (void *) *buff;
 }
 
-static const char *get_file_format(const Elf64_Half machine_type)
-{
-    switch (machine_type) {
-        case EM_386:
-            return "i386";
-        case EM_X86_64:
-            return "x86-64";
-        default:
-            return "???";
-    }
-}
-
 static void print_dump(const Elf64_Ehdr *elf, const char *dump,
     const char *filename, const objdump_t *config)
 {
-    printf("\n%s:     file format elf%d-%s\n\n", filename,
+    printf("\n%s:     file format elf%d-%s\n", filename,
         ((char *)elf)[EI_CLASS] == ELFCLASS32 ? 32 : 64,
     get_file_format(elf->e_machine));
     if (((char *)elf)[EI_CLASS] == ELFCLASS32)
         return;
+    if (config->flags.headers)
+        print_headers(elf, dump);
+    else
+        printf("\n");
     if (config->flags.full_content)
         print_sections(elf, dump);
 }

@@ -23,5 +23,6 @@ typedef struct {
 } objdump_t;
 
 void print_sections(const Elf64_Ehdr *elf, const char *buff);
+void print_headers(const Elf64_Ehdr *elf, const char *buff);
 
 #endif //OBJDUMP_H
