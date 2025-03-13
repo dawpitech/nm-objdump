@@ -133,8 +133,10 @@ int main(const int argc, char *const *argv)
 
     if (parse_inputs(&argv[1], argc - 1, &config) != 0)
         return EXIT_FAILURE_TEK;
-    if (!config.flags.full_content && !config.flags.headers)
-        return EXIT_FAILURE_TEK;
+    if (!config.flags.full_content && !config.flags.headers) {
+        config.flags.full_content = true;
+        config.flags.headers = true;
+    }
     if (config.files_nb > 0)
         return iterate_on_files(config.files, config.files_nb, &config);
     return dump_file(DEFAULT, &config);
