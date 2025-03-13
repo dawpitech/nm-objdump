@@ -59,7 +59,8 @@ static void print_symbol_info(const Elf64_Sym symbol, const Elf64_Shdr *shdr,
 {
     if (*(sym_strtab + symbol.st_name) == '\0' || symbol.st_info == STT_FILE)
         return;
-    if (symbol.st_value == 0 && !is_relocatable) {
+    if ((symbol.st_value == 0 && !is_relocatable)
+        || symbol.st_shndx == SHN_UNDEF) {
         printf("%16c %c %s\n", ' ', get_symbol(symbol, shdr),
             sym_strtab + symbol.st_name);
         return;
