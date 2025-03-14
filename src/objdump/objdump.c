@@ -54,6 +54,7 @@ static Elf64_Ehdr *load_elf(const char *filepath, char **buff, struct stat *s,
     }
     if ((*buff)[0] != ELFMAG0 || (*buff)[1] != ELFMAG1 ||
         (*buff)[2] != ELFMAG2 || (*buff)[3] != ELFMAG3) {
+        printf("got: %d, %d, %d, %d\nexpected: %d, %d, %d, %d\n", (*buff)[0], (*buff)[1], (*buff)[2], (*buff)[3], ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3);
         print_err(filepath, "file format not recognized", false);
         return NULL;
         }
@@ -63,19 +64,38 @@ static Elf64_Ehdr *load_elf(const char *filepath, char **buff, struct stat *s,
 static void print_dump(const Elf64_Ehdr *elf, const char *dump,
     const char *filename, const objdump_t *config)
 {
-    if (((char *)elf)[EI_CLASS] == ELFCLASS32) {
-        fprintf(stderr, "file is in 32bits mode, skipping\n");
-        return;
-    }
     printf("\n%s:     file format elf%d-%s\n", filename,
         ((char *)elf)[EI_CLASS] == ELFCLASS32 ? 32 : 64,
     get_file_format(elf->e_machine));
-    if (config->flags.headers)
-        print_headers(elf, dump);
-    else
+    if (config->flags.headers) {
+        if (((char *)elf)[EI_CLASS] == ELFCLASS32)
+            print_headers_32((Elf32_Ehdr *) elf);
+        else
+            print_headers_64(elf);
+    } else
         printf("\n");
-    if (config->flags.full_content)
-        print_sections(elf, dump);
+    if (config->flags.full_content) {
+        if (((char *)elf)[EI_CLASS] == ELFCLASS32)
+            print_sections_32((Elf32_Ehdr *) elf, dump);
+        else
+            print_sections_64(elf, dump);
+    }
+}
+
+static int verify_elf_offset(const Elf64_Ehdr *elf, const struct stat *s,
+    const char *const file)
+{
+    if (((char *)elf)[EI_CLASS] == ELFCLASS32) {
+        if(((Elf32_Ehdr *) elf)->e_shoff > (unsigned long) s->st_size)
+            return print_err(file, "file format not recognized", false), -1;
+        return 0;
+    }
+    if (((char *)elf)[EI_CLASS] == ELFCLASS64) {
+        if (elf->e_shoff > (long unsigned int) s->st_size)
+            return print_err(file, "file format not recognized", false), -1;
+        return 0;
+    }
+    return -1;
 }
 
 static int dump_file(const char *const file, const objdump_t *config)
@@ -88,10 +108,8 @@ static int dump_file(const char *const file, const objdump_t *config)
     elf = load_elf(file, &buff, &s, &fd);
     if (elf == NULL)
         return EXIT_FAILURE_TEK;
-    if (elf->e_shoff > s.st_size) {
-        print_err(file, "file format not recognized", false);
+    if (verify_elf_offset(elf, &s, file) != 0)
         return EXIT_FAILURE_TEK;
-    }
     print_dump(elf, buff, file, config);
     munmap(buff, s.st_size);
     close(fd);

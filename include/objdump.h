@@ -22,7 +22,9 @@ typedef struct {
     size_t files_nb;
 } objdump_t;
 
-void print_sections(const Elf64_Ehdr *elf, const char *buff);
-void print_headers(const Elf64_Ehdr *elf, const char *buff);
+void print_sections_64(const Elf64_Ehdr *elf, const char *buff);
+void print_sections_32(const Elf32_Ehdr *elf, const char *buff);
+void print_headers_64(const Elf64_Ehdr *elf);
+void print_headers_32(const Elf32_Ehdr *elf);
 
 #endif //OBJDUMP_H

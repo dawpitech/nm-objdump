@@ -7,10 +7,10 @@
 
 #include <stdio.h>
 
-#include "flags.h"
-#include "objdump.h"
+#include "../../../include/flags.h"
+#include "../../../include/objdump.h"
 
-static const char *get_readable_architecture(const Elf64_Half machine_type)
+static const char *get_readable_architecture_64(const Elf64_Half machine_type)
 {
     switch (machine_type) {
         case EM_386:
@@ -22,7 +22,7 @@ static const char *get_readable_architecture(const Elf64_Half machine_type)
     }
 }
 
-static size_t get_flags_value(const Elf64_Half obj_type)
+static size_t get_flags_value_64(const Elf64_Half obj_type)
 {
     switch (obj_type) {
         case ET_REL:
@@ -36,7 +36,7 @@ static size_t get_flags_value(const Elf64_Half obj_type)
     }
 }
 
-static const char *get_flags_readable(const Elf64_Half obj_type)
+static const char *get_flags_readable_64(const Elf64_Half obj_type)
 {
     switch (obj_type) {
         case ET_REL:
@@ -50,13 +50,13 @@ static const char *get_flags_readable(const Elf64_Half obj_type)
     }
 }
 
-void print_headers(const Elf64_Ehdr *elf, const char *buff)
+void print_headers_64(const Elf64_Ehdr *elf)
 {
     printf("architecture: %s, flags 0x%08lx:\n"
         "%s\n"
         "start address 0x%016lx\n\n",
-        get_readable_architecture(elf->e_machine),
-        get_flags_value(elf->e_type),
-        get_flags_readable(elf->e_type),
+        get_readable_architecture_64(elf->e_machine),
+        get_flags_value_64(elf->e_type),
+        get_flags_readable_64(elf->e_type),
         elf->e_entry);
 }

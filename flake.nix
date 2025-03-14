@@ -7,17 +7,10 @@
   outputs = { self, nixpkgs, utils }:
     utils.lib.eachDefaultSystem (system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
-        cc = pkgs.gcc14;
-
-        deps = with pkgs; [
-          libcxx
-          gnumake
-          criterion
-        ] ++ [ cc ];
+        pkgs = import nixpkgs { inherit system; };
       in
       {
-        devShells.default = pkgs.mkShell {
+        devShells.default = pkgs.mkShell.override {stdenv = pkgs.multiStdenv;} {
           packages = with pkgs; [
             unzip
             gcovr
@@ -28,7 +21,8 @@
             man-pages-posix
             gdb
             mold
-          ] ++ deps;
+            criterion
+          ];
         };
 
         formatter = pkgs.nixpkgs-fmt;
