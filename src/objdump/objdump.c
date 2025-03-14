@@ -54,7 +54,6 @@ static Elf64_Ehdr *load_elf(const char *filepath, char **buff, struct stat *s,
     }
     if ((*buff)[0] != ELFMAG0 || (*buff)[1] != ELFMAG1 ||
         (*buff)[2] != ELFMAG2 || (*buff)[3] != ELFMAG3) {
-        printf("got: %d, %d, %d, %d\nexpected: %d, %d, %d, %d\n", (*buff)[0], (*buff)[1], (*buff)[2], (*buff)[3], ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3);
         print_err(filepath, "file format not recognized", false);
         return NULL;
         }
@@ -86,7 +85,7 @@ static int verify_elf_offset(const Elf64_Ehdr *elf, const struct stat *s,
     const char *const file)
 {
     if (((char *)elf)[EI_CLASS] == ELFCLASS32) {
-        if(((Elf32_Ehdr *) elf)->e_shoff > (unsigned long) s->st_size)
+        if (((Elf32_Ehdr *) elf)->e_shoff > (unsigned long) s->st_size)
             return print_err(file, "file format not recognized", false), -1;
         return 0;
     }
